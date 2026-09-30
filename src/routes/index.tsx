@@ -4,10 +4,10 @@ import { LandingPage } from "@/components/landing/LandingPage";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Trixus | Atendimento e relacionamento em um só lugar" },
-      { name: "description", content: "Centralize conversas, organize sua equipe e acompanhe sua operação de atendimento com a Trixus." },
-      { property: "og:title", content: "Trixus | Atendimento e relacionamento em um só lugar" },
-      { property: "og:description", content: "Centralize conversas, organize sua equipe e acompanhe sua operação de atendimento com a Trixus." },
+      { title: "Trixus | Soluções que conectam." },
+      { name: "description", content: "Plataforma de multi-atendimento para Whatsapp" },
+      { property: "og:title", content: "Trixus | Soluções que conectam." },
+      { property: "og:description", content: "Plataforma de multi-atendimento para Whatsapp" },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://www.trixus.com.br/" },
       { property: "og:site_name", content: "Trixus" },
@@ -19,8 +19,8 @@ export const Route = createFileRoute("/")({
       { property: "og:image:height", content: "973" },
       { property: "og:image:alt", content: "Logo da Trixus" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "Trixus | Atendimento e relacionamento em um só lugar" },
-      { name: "twitter:description", content: "Centralize conversas, organize sua equipe e acompanhe sua operação de atendimento com a Trixus." },
+      { name: "twitter:title", content: "Trixus | Soluções que conectam." },
+      { name: "twitter:description", content: "Plataforma de multi-atendimento para Whatsapp" },
       { name: "twitter:image", content: "https://www.trixus.com.br/trixus-share.png" },
     ],
     links: [{ rel: "canonical", href: "https://www.trixus.com.br/" }],
