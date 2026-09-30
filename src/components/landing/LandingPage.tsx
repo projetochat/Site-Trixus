@@ -52,7 +52,16 @@ const navItems: [string, string][] = [
   ["Contato", "#contato"],
 ];
 
-async function handleContactSubmit(event: React.FormEvent<HTMLFormElement>) {
+function formatCooldown(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
+}
+
+async function handleContactSubmit(
+  event: React.FormEvent<HTMLFormElement>,
+  setCooldownSeconds: (seconds: number) => void,
+) {
   event.preventDefault();
   const form = event.currentTarget;
   if (form.dataset["submitting"] === "true") return;
@@ -61,7 +70,7 @@ async function handleContactSubmit(event: React.FormEvent<HTMLFormElement>) {
   form.dataset["submitting"] = "true";
 
   try {
-    await sendContactMessage({
+    const result = await sendContactMessage({
       data: {
         nome: String(formData.get("nome") ?? ""),
         email: String(formData.get("email") ?? ""),
@@ -70,6 +79,16 @@ async function handleContactSubmit(event: React.FormEvent<HTMLFormElement>) {
         website: String(formData.get("website") ?? ""),
       },
     });
+
+    if (!result.ok && result.reason === "cooldown") {
+      setCooldownSeconds(result.retryAfterSeconds);
+      toast.error(
+        `Mensagem já enviada. Aguarde ${formatCooldown(result.retryAfterSeconds)} para tentar novamente.`,
+      );
+      return;
+    }
+
+    setCooldownSeconds(0);
     form.reset();
     toast.success("Mensagem enviada com sucesso.");
   } catch (error) {
@@ -98,6 +117,17 @@ function WhatsAppFloat() {
 
 export function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
+  const [contactCooldownSeconds, setContactCooldownSeconds] = useState(0);
+
+  useEffect(() => {
+    if (contactCooldownSeconds <= 0) return;
+
+    const timeout = window.setTimeout(() => {
+      setContactCooldownSeconds((current) => Math.max(0, current - 1));
+    }, 1_000);
+
+    return () => window.clearTimeout(timeout);
+  }, [contactCooldownSeconds]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("");
   useEffect(() => {
@@ -416,7 +446,7 @@ export function LandingPage() {
                 </a>
               </div>
               <form
-                onSubmit={handleContactSubmit}
+                onSubmit={(event) => handleContactSubmit(event, setContactCooldownSeconds)}
                 className="contact-form mx-auto mt-6 w-full max-w-2xl rounded-xl border border-border bg-card p-6 shadow-sm sm:p-8"
               >
                 <input
@@ -498,6 +528,12 @@ export function LandingPage() {
                 <Button type="submit" size="lg" className="mt-6 h-12 w-full">
                   Enviar mensagem <ArrowRight />
                 </Button>
+                {contactCooldownSeconds > 0 && (
+                  <p role="alert" className="mt-3 text-center text-sm font-medium text-destructive">
+                    Você já enviou uma mensagem. Aguarde {formatCooldown(contactCooldownSeconds)}{" "}
+                    para enviar novamente.
+                  </p>
+                )}
               </form>
             </div>
           </div>

@@ -18,7 +18,9 @@ type RateLimitEntry = {
 
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1_000;
 const RATE_LIMIT_MAX_REQUESTS = 5;
+const CONTACT_COOLDOWN_MS = 5 * 60 * 1_000;
 const rateLimitByIp = new Map<string, RateLimitEntry>();
+const lastSuccessfulContactByIdentity = new Map<string, number>();
 
 function assertWithinRateLimit(ip: string) {
   const now = Date.now();
@@ -34,6 +36,21 @@ function assertWithinRateLimit(ip: string) {
   }
 
   current.count += 1;
+}
+
+function getContactCooldownSeconds(identity: string) {
+  const now = Date.now();
+  for (const [storedIdentity, lastSuccessfulContact] of lastSuccessfulContactByIdentity) {
+    if (lastSuccessfulContact + CONTACT_COOLDOWN_MS <= now) {
+      lastSuccessfulContactByIdentity.delete(storedIdentity);
+    }
+  }
+
+  const lastSuccessfulContact = lastSuccessfulContactByIdentity.get(identity);
+  if (!lastSuccessfulContact) return 0;
+
+  const remainingMs = lastSuccessfulContact + CONTACT_COOLDOWN_MS - now;
+  return Math.ceil(remainingMs / 1_000);
 }
 
 function requiredEnv(name: string) {
@@ -62,12 +79,22 @@ export const sendContactMessage = createServerFn({ method: "POST" })
     // para nao revelar a protecao, mas nenhum e-mail e enviado.
     if (data.website) return { ok: true };
 
-    const [{ getRequestIP }, nodemailerModule] = await Promise.all([
+    const [{ getRequestIP }, nodemailerModule, { createHash }] = await Promise.all([
       import("@tanstack/react-start/server"),
       import("nodemailer"),
+      import("node:crypto"),
     ]);
 
     const ip = getRequestIP({ xForwardedFor: process.env["TRUST_PROXY"] === "true" }) ?? "unknown";
+    const identity = createHash("sha256")
+      .update(`${data.email.toLowerCase()}|${data.telefone.replace(/\D/g, "")}`)
+      .digest("hex");
+    const retryAfterSeconds = getContactCooldownSeconds(identity);
+
+    if (retryAfterSeconds > 0) {
+      return { ok: false, reason: "cooldown" as const, retryAfterSeconds };
+    }
+
     assertWithinRateLimit(ip);
 
     const smtpPort = Number(requiredEnv("SMTP_PORT"));
@@ -94,7 +121,7 @@ export const sendContactMessage = createServerFn({ method: "POST" })
         from: requiredEnv("SMTP_FROM"),
         to: requiredEnv("CONTACT_TO"),
         replyTo: { name: data.nome, address: data.email },
-        subject: `Contato pelo site - ${data.nome}`,
+        subject: `Novo Lead - Trixus - ${data.nome}`,
         text: buildPlainTextMessage(data),
       });
     } catch (error) {
@@ -102,5 +129,6 @@ export const sendContactMessage = createServerFn({ method: "POST" })
       throw new Error("Nao foi possivel enviar a mensagem agora. Tente novamente em instantes.");
     }
 
+    lastSuccessfulContactByIdentity.set(identity, Date.now());
     return { ok: true };
   });
