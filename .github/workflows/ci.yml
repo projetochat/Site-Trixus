@@ -1,0 +1,32 @@
+name: Verificação
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Obter código
+        uses: actions/checkout@v4
+
+      - name: Configurar Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Instalar dependências
+        run: bun install --frozen-lockfile
+
+      - name: Verificar tipos
+        run: bun run typecheck
+
+      - name: Gerar build de produção
+        run: bun run build
