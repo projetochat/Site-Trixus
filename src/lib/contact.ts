@@ -5,7 +5,7 @@ const contactSchema = z.object({
   nome: z.string().trim().min(2).max(100),
   email: z.string().trim().email().max(254),
   telefone: z.string().trim().min(8).max(30),
-  mensagem: z.string().trim().min(10).max(5_000),
+  mensagem: z.string().trim().min(1).max(5_000),
   website: z.string().max(200).default(""),
 });
 

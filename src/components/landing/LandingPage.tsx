@@ -518,7 +518,7 @@ export function LandingPage() {
                       id="contact-message"
                       name="mensagem"
                       required
-                      minLength={10}
+                      minLength={1}
                       maxLength={5000}
                       rows={4}
                       placeholder="Conte um pouco sobre a sua operação."
